@@ -70,6 +70,35 @@ struct MyARSCNView: UIViewRepresentable {
                 node.addChildNode(planeNode)
         }
         
+        
+        @objc
+        func handleTap(sender: UITapGestureRecognizer) {
+            let result = self.parent.arView.hitTest(sender.location(in: sender.view), types: ARHitTestResult.ResultType.featurePoint)
+            
+            guard let firstHit = result.first else {return}
+            let hitWorldPosition = firstHit.worldTransform.columns.3
+            
+            let cubenode = SCNNode(geometry: SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0))
+            cubenode.position = SCNVector3.init(hitWorldPosition.x, hitWorldPosition.y, hitWorldPosition.z)
+            
+            parent.arView.scene.rootNode.addChildNode(cubenode)
+            
+            
+            
+            //let hitPosition = result.first?.worldTransform.columns.3
+            //cubenode.position = SCNVector3.init(hitPosition!.x, hitPosition!.y, hitPosition!.z)
+            
+            //parent.arView.scene.rootNode.addChildNode(cubenode)
+            
+            
+            /*
+            
+            
+            
+            print(result)
+             */
+        }
+        
     }
   
     var arView = ARSCNView(frame: .zero)
@@ -80,7 +109,6 @@ struct MyARSCNView: UIViewRepresentable {
     
     func makeUIView(context: Context) -> ARSCNView {
         // arView = ARSCNView(frame: .zero)
-        
         let configuration = ARWorldTrackingConfiguration()
         configuration.planeDetection = [.horizontal, .vertical]
         
@@ -91,8 +119,13 @@ struct MyARSCNView: UIViewRepresentable {
         
         arView.delegate = context.coordinator
         
+        let tapGestureRecognizer = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(sender:)))
+        arView.addGestureRecognizer(tapGestureRecognizer)
+        
+    
         return arView
     }
+    
     
     func updateUIView(_ uiView: ARSCNView, context: Context) {
         
