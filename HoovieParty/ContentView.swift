@@ -9,6 +9,8 @@
 // https://stackoverflow.com/questions/60582392/swiftui-passing-data-from-swiftuiview-to-scenekit
 // https://stackoverflow.com/questions/58258964/how-to-combine-arkit-and-swiftui-without-using-the-storyboard-and-or-iboutlets
 // https://www.vadimbulavin.com/using-uikit-uiviewcontroller-and-uiview-in-swiftui/
+// https://blog.devgenius.io/play-video-with-arkit-and-image-tracking-e8b52dc4ad76
+
 
 
 import SwiftUI
@@ -46,28 +48,48 @@ struct MyARSCNView: UIViewRepresentable {
         }
         
         func session(_ session: ARSession, didFailWithError error: Error) {
-            print("session")
+            //print("session")
             let cubeNode = SCNNode(geometry: SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0))
             cubeNode.position = SCNVector3(0, 0, -0.2)
             parent.arView.scene.rootNode.addChildNode(cubeNode)
         }
         
         func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-            print("renderer")
+            //print("renderer")
+            
+            handleARImageAnchorRender(anchor: anchor, node: node)
+            //handlePlaneAnchorRender(anchor: anchor, node: node)
+        }
+        
+        func handleARImageAnchorRender(anchor: ARAnchor, node: SCNNode) {
+            guard anchor is ARImageAnchor else { return }
+    
+            let cubenode = SCNNode(geometry: SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0))
+            cubenode.position = SCNVector3.init(node.position.x, node.position.y + 0.05, node.position.z)
+            cubenode.geometry?.materials.first?.diffuse.contents = UIColor.yellow
+            
+            
+            //let scene = SCNScene(named: "scene.scn")!
+            
+            node.addChildNode(cubenode)
+            
+        }
+        
+        func handlePlaneAnchorRender(anchor: ARAnchor, node: SCNNode) {
             // This visualization covers only detected planes.
-                guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
+            guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
 
-                // Create a SceneKit plane to visualize the node using its position and extent.
-                let plane = SCNPlane(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z))
-                let planeNode = SCNNode(geometry: plane)
-                planeNode.position = SCNVector3Make(planeAnchor.center.x, 0, planeAnchor.center.z)
+            // Create a SceneKit plane to visualize the node using its position and extent.
+            let plane = SCNPlane(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z))
+            let planeNode = SCNNode(geometry: plane)
+            planeNode.position = SCNVector3Make(planeAnchor.center.x, 0, planeAnchor.center.z)
 
-                // SCNPlanes are vertically oriented in their local coordinate space.
-                // Rotate it to match the horizontal orientation of the ARPlaneAnchor.
-                planeNode.transform = SCNMatrix4MakeRotation(-Float.pi / 2, 1, 0, 0)
+            // SCNPlanes are vertically oriented in their local coordinate space.
+            // Rotate it to match the horizontal orientation of the ARPlaneAnchor.
+            planeNode.transform = SCNMatrix4MakeRotation(-Float.pi / 2, 1, 0, 0)
 
-                // ARKit owns the node corresponding to the anchor, so make the plane a child node.
-                node.addChildNode(planeNode)
+            // ARKit owns the node corresponding to the anchor, so make the plane a child node.
+            node.addChildNode(planeNode)
         }
         
         
@@ -75,7 +97,7 @@ struct MyARSCNView: UIViewRepresentable {
         func handleTap(sender: UITapGestureRecognizer) {
             let result = self.parent.arView.hitTest(sender.location(in: sender.view), types: ARHitTestResult.ResultType.featurePoint)
             
-            guard let firstHit = result.first else {return}
+            guard let firstHit = result.first else { return }
             let hitWorldPosition = firstHit.worldTransform.columns.3
             
             let cubenode = SCNNode(geometry: SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0))
@@ -112,10 +134,16 @@ struct MyARSCNView: UIViewRepresentable {
         let configuration = ARWorldTrackingConfiguration()
         configuration.planeDetection = [.horizontal, .vertical]
         
+        let arImages = ARReferenceImage.referenceImages(inGroupNamed: "AR Resources", bundle: nil)
+        configuration.detectionImages = arImages!
+        configuration.maximumNumberOfTrackedImages = 1
+
+        
+        
         arView.session.run(configuration)
         
-        let scene = SCNScene(named: "scene.scn")!
-        arView.scene = scene
+        //let scene = SCNScene(named: "scene.scn")!
+        //arView.scene = scene
         
         arView.delegate = context.coordinator
         
